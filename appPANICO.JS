@@ -1,58 +1,57 @@
-let panicoAtivado = false // Variável para controlar o estado do botão de pânico
-let som = new Audio("sound/alarme.mp3") // Carrega o áudio do alarme para ser reproduzido
-let botao, track // Declaração de variáveis para o botão e controle de vídeo
+// Seleciona a imagem que atua como botão
+const alertButton = document.getElementById("alertButton") // Obtenha o elemento com id "alertButton" para ser usado como botão de alerta
 
-document.addEventListener('DOMContentLoaded', () => {
-    botao = document.getElementById('button') // Seleciona o botão pelo ID 'button'
-    
-    inicializarLanterna() // Inicializa a lanterna ao carregar a página
+// Variáveis de apoio
+let alertaAtivo = false // Estado do alerta sonoro e LED, inicialmente falso
 
-    // Evento para mousedown e touchstart
-    botao.addEventListener('mousedown', (event) => {
-        event.preventDefault() 
-        ativarPanico()
-    })
+// Pré-carregamento de áudio
+const somAlerta = new Audio("sound/alarme.mp3") // Cria um objeto de áudio com o som do alarme
 
-    botao.addEventListener('touchstart', (event) => {
-        event.preventDefault()
-        ativarPanico()
-    })
+// Função para ativar o LED, som e trocar a imagem
+function ativarAlerta() {
+    somAlerta.loop = true // Configura o som para repetir
+    somAlerta.play() // Inicia o som do alarme
+    alertaAtivo = true // Define o estado do alerta como ativo
+    alertButton.src = "img/panicon.png" // Troca a imagem do botão
+    ligarLed() // Chama a função para ligar o LED
+}
 
-    // Evento para mouseup e touchend
-    botao.addEventListener('mouseup', (event) => {
-        event.preventDefault()
-        desativarPanico()
-    })
+// Função para desativar o LED, som e restaurar a imagem
+function desativarAlerta() {
+    somAlerta.pause() // Pausa o som do alarme
+    somAlerta.currentTime = 0 // Reinicia o som para o início
+    alertaAtivo = false // Define o estado do alerta como inativo
+    alertButton.src = "img/botaopanico.jpg" // Restaura a imagem original
+    desligarLed() // Chama a função para desligar o LED
+}
 
-    botao.addEventListener('touchend', (event) => {
-        event.preventDefault()
-        desativarPanico()
-    })
+// Ativar alerta e LED ao pressionar a imagem (botão)
+alertButton.addEventListener("mousedown", (event) => {
+    event.preventDefault() // Evita o comportamento padrão do evento
+    if (!alertaAtivo) ativarAlerta() // Ativa o alerta se ele estiver inativo
 })
 
-// Função para ativar o pânico
-function ativarPanico() {
-    if (!panicoAtivado) {
-        botao.src = "img/panicon.png" // Altera a imagem do botão para o estado "ativado"
-        som.play() // Toca o som do alarme
-        ligarLanterna() // Liga a lanterna
-        panicoAtivado = true // Define que o modo pânico está ativado
-    }
-}
+// Desativar alerta e LED ao soltar a imagem
+alertButton.addEventListener("mouseup", (event) => {
+    event.preventDefault() // Evita o comportamento padrão do evento
+    if (alertaAtivo) desativarAlerta() // Desativa o alerta se ele estiver ativo
+})
 
-// Função para desativar o pânico
-function desativarPanico() {
-    if (panicoAtivado) {
-        botao.src = "img/botaopanico.jpg" // Altera a imagem do botão para o estado "desativado"
-        som.pause() // Pausa o som do alarme
-        som.currentTime = 0 // Reinicia o áudio para a próxima ativação
-        desligarLanterna() // Desliga a lanterna
-        panicoAtivado = false // Define que o modo pânico está desativado
-    }
-}
+// Eventos para dispositivos touch
+alertButton.addEventListener("touchstart", (event) => {
+    event.preventDefault()
+    if (!alertaAtivo) ativarAlerta()
+})
 
-// Função assíncrona para inicializar a lanterna
-async function inicializarLanterna() {
+alertButton.addEventListener("touchend", (event) => {
+    event.preventDefault()
+    if (alertaAtivo) desativarAlerta()
+})
+
+// Inicialização do LED
+let track // Variável para armazenar a faixa de vídeo
+
+async function inicializarLed() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" }
@@ -60,31 +59,34 @@ async function inicializarLanterna() {
         track = stream.getVideoTracks()[0]
         const capabilities = track.getCapabilities()
         if (!capabilities.torch) {
-            console.log("Lanterna não suportada no dispositivo.")
+            console.log("LED não suportado no dispositivo.")
+            return
         }
     } catch (error) {
-        console.error(`Erro ao inicializar a lanterna: ${error}`)
+        console.error(`Erro ao inicializar o LED: ${error}`)
     }
 }
 
-// Função assíncrona para ligar a lanterna
-async function ligarLanterna() {
+// Funções para controlar o LED
+async function ligarLed() {
     if (track) {
         try {
             await track.applyConstraints({ advanced: [{ torch: true }] })
         } catch (error) {
-            console.error(`Erro ao ligar a lanterna: ${error}`)
+            console.error(`Erro ao ligar o LED: ${error}`)
         }
     }
 }
 
-// Função assíncrona para desligar a lanterna
-async function desligarLanterna() {
+async function desligarLed() {
     if (track) {
         try {
             await track.applyConstraints({ advanced: [{ torch: false }] })
         } catch (error) {
-            console.error(`Erro ao desligar a lanterna: ${error}`)
+            console.error(`Erro ao desligar o LED: ${error}`)
         }
     }
 }
+
+// Inicializar o LED ao carregar a página
+inicializarLed()
